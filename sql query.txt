@@ -1,0 +1,218 @@
+CREATE DATABASE BANK;
+
+USE BANK;
+
+SELECT * FROM financial_loan;
+
+DESCRIBE financial_loan;
+
+-- ---------- CHANGING THE DATATYPES ------------------
+ALTER TABLE financial_loan
+MODIFY COLUMN sub_grade VARCHAR(10),
+MODIFY COLUMN term VARCHAR(20);
+
+
+-- ----------------Update multiple columns with incorrect date formats------------------------------
+UPDATE financial_loan
+SET 
+    issue_date = STR_TO_DATE(issue_date, '%d-%m-%Y'),
+    last_credit_pull_date = STR_TO_DATE(last_credit_pull_date, '%d-%m-%Y'),
+    last_payment_date = STR_TO_DATE(last_payment_date, '%d-%m-%Y'),
+    next_payment_date = STR_TO_DATE(next_payment_date, '%d-%m-%Y');
+
+-- DASHBOARD - 1 -----------------
+-- ------------ TOTAL LOAN APPLICATION ---------------------
+SELECT COUNT(DISTINCT id) AS total_loan_application 
+FROM financial_loan;
+-- -------------- MTD LOAN APPLICATION ----------------------- 	
+SELECT COUNT(DISTINCT id) AS mtd_loan_application 
+FROM financial_loan
+WHERE MONTH(issue_date) = 12 AND YEAR(issue_date) = 2021;
+-- -------------- PMTD LOAN APPLICATION ----------------------- 	
+SELECT COUNT(DISTINCT id) AS pmtd_loan_application 
+FROM financial_loan
+WHERE MONTH(issue_date) = 11 AND YEAR(issue_date) = 2021;	
+
+
+
+-- ---------------------- TOTAL FUNDED AMOUNT -----------------------
+SELECT SUM(loan_amount) AS total_amount
+FROM financial_loan;
+-- ---------------------- MTD TOTAL FUNDED AMOUNT -----------------------
+SELECT SUM(loan_amount) AS mtd_total_funded_amount
+FROM financial_loan
+WHERE MONTH(issue_date) = 12 AND YEAR(issue_date) = 2021;
+-- ---------------------- PMTD TOTAL FUNDED AMOUNT -----------------------
+SELECT SUM(loan_amount) AS pmtd_total_funded_amount
+FROM financial_loan
+WHERE MONTH(issue_date) = 11 AND YEAR(issue_date) = 2021;
+
+
+
+-- ------------------  TOTAL AMOUNT RECEVIED --------------------
+SELECT SUM(total_payment) AS total_amount_received
+FROM financial_loan;
+-- ------------------ MTD TOTAL AMOUNT RECEVIED --------------------
+SELECT SUM(total_payment) AS mtd_total_amount_received
+FROM financial_loan
+WHERE MONTH(issue_date) = 12 AND YEAR(issue_date) = 2021;
+-- ------------------ PMTD TOTAL AMOUNT RECEVIED --------------------
+SELECT SUM(total_payment) AS pmtd_total_amount_received
+FROM financial_loan
+WHERE MONTH(issue_date) = 11 AND YEAR(issue_date) = 2021;
+
+
+
+-- -----------------AVERAGE INTEREST RATE -------------------------
+SELECT AVG(int_rate)*100 AS Avg_Int_Rate 
+FROM financial_loan;
+SELECT ROUND(AVG(int_rate)*100,3) AS Avg_Int_Rate 
+FROM financial_loan;
+-- -----------------MTD AVERAGE INTEREST RATE -------------------------
+SELECT ROUND(AVG(int_rate)*100,3) AS MTD_Avg_Int_Rate 
+FROM financial_loan
+WHERE MONTH(issue_date) = 12 AND YEAR(issue_Date) = 2021;
+-- -----------------PMTD AVERAGE INTEREST RATE -------------------------
+SELECT ROUND(AVG(int_rate)*100,3) AS pmtd_Avg_Int_Rate 
+FROM financial_loan
+WHERE MONTH(issue_date) = 11 AND YEAR(issue_date) = 2021;
+
+
+-- ------------Avg DTI------------------
+SELECT ROUND(AVG(dti) * 100,3) AS avg_dti
+FROM financial_loan;
+-- --------------MTD Avg DTI----------------
+SELECT ROUND(AVG(dti) * 100,3) AS mtd_avg_dti
+FROM financial_loan
+WHERE MONTH(issue_date) = 12 AND YEAR(issue_date) = 2021;
+-- -----------PMTD Avg DTI------------------
+SELECT ROUND(AVG(dti) * 100,3) AS pmtd_avg_dti
+FROM financial_loan
+WHERE MONTH(issue_date) = 11 AND YEAR(issue_date) = 2021;
+
+
+-- DASHBOARD 2 ----------
+-- ---------GOOD LOAN ISSUED --------------
+-- Good Loan Percentage ------------
+SELECT
+	(COUNT(CASE WHEN loan_status = 'Fully Paid' OR loan_status = 'Current' THEN id END) * 100)
+    /COUNT(id) AS good_loan_percentage
+FROM financial_loan;
+
+-- ---------Good Loan Applications ----------------
+SELECT COUNT(id) AS good_loan_applications
+FROM financial_loan
+WHERE loan_status = 'Fully Paid' OR loan_status = 'Current';
+
+-- -------- Good Loan Funded Amount ------------------------
+SELECT SUM(loan_amount) AS good_loan_funded_amount
+FROM financial_loan
+WHERE loan_status = 'Fully Paid' OR loan_status = 'Current';
+
+-- -------Good Loan Amount Received --------------
+SELECT SUM(total_payment) AS good_loan_amount_received
+FROM financial_loan
+WHERE loan_status = 'Fully Paid' OR loan_status = 'Current';
+
+-- -------- BAD LOAN ISSUED --------------------------
+-- Bad Loan Percentage -------------------
+SELECT
+	(COUNT(CASE WHEN loan_status = 'Charged Off' THEN id END)) * 100 
+    /COUNT(id) AS bad_loan_percentage
+FROM financial_loan;
+
+-- --------- Bad Loan Applications ---------------
+SELECT COUNT(id) AS bad_loan_applications
+FROM financial_loan
+WHERE loan_status = 'Charged Off';
+
+-- -------- Bad Loan Funded Amount ---------------------
+SELECT SUM(loan_amount) AS bad_loan_funded_amount
+FROM financial_loan
+WHERE loan_status = 'Charged Off';
+
+-- ---------- Bad Loan Amount Received --------------------
+SELECT SUM(total_payment) AS bad_loan_amount_received
+FROM financial_loan
+WHERE loan_status = 'Charged Off';
+
+-- --- LOAN STATUS ---------
+SELECT
+	DISTINCT(loan_status) AS loan_status,
+    COUNT(id) AS total_loan_applications,
+    SUM(total_payment) AS total_amount_received,
+    SUM(loan_amount) AS total_funded_amount,
+    ROUND(AVG(int_rate) * 100,3) AS interest_rates,
+    ROUND(AVG(dti) * 100,3) AS dti
+FROM financial_loan
+GROUP BY loan_status;
+
+
+SELECT
+	DISTINCT(loan_status) AS loan_status,
+    COUNT(id) AS total_loan_applications,
+    SUM(total_payment) AS total_amount_received,
+    SUM(loan_amount) AS total_funded_amount
+FROM financial_loan
+WHERE MONTH(issue_date) = 12 AND YEAR(issue_date) = 2021
+GROUP BY loan_status;
+
+ -- ---- STATE ------
+ SELECT
+	DISTINCT(address_state),
+    COUNT(id) AS total_loan_applications,
+	SUM(loan_amount) AS total_funded_amount,
+    SUM(total_payment) AS total_received_amount
+FROM financial_loan
+GROUP BY address_state
+ORDER BY address_state;
+
+-- ----- TERM ----------------
+ SELECT
+	term,
+    COUNT(id) AS total_loan_applications,
+	SUM(loan_amount) AS total_funded_amount,
+    SUM(total_payment) AS total_received_amount
+FROM financial_loan
+GROUP BY term
+ORDER BY term;
+
+-- ------ EMPLOYEE LENGTH ----------------
+ SELECT
+	emp_length,
+    COUNT(id) AS total_loan_applications,
+	SUM(loan_amount) AS total_funded_amount,
+    SUM(total_payment) AS total_received_amount
+FROM financial_loan
+GROUP BY emp_length
+ORDER BY emp_length DESC;
+
+-- --------PURPOSE ---------------------
+ SELECT
+	purpose,
+    COUNT(id) AS total_loan_applications,
+	SUM(loan_amount) AS total_funded_amount,
+    SUM(total_payment) AS total_received_amount
+FROM financial_loan
+GROUP BY purpose
+ORDER BY purpose;
+
+-- ------------ HOME OWNERSHIP --------------
+ SELECT
+	home_ownership,
+    COUNT(id) AS total_loan_applications,
+	SUM(loan_amount) AS total_funded_amount,
+    SUM(total_payment) AS total_received_amount
+FROM financial_loan
+GROUP BY home_ownership
+ORDER BY home_ownership;
+
+SELECT
+	home_ownership,
+    COUNT(id) AS total_loan_applications,
+	SUM(loan_amount) AS total_funded_amount,
+    SUM(total_payment) AS total_received_amount
+FROM financial_loan
+WHERE grade = 'A'
+GROUP BY home_ownership
+ORDER BY home_ownership;
